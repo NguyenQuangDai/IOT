@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bể Cá Thông Minh 4G</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f2f2f7;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            color: #1c1c1e;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #007aff;
+            margin-top: 0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 0;
+            margin: 10px 0;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-blue {
+            background: #007aff;
+        }
+
+        .btn-green {
+            background: #34c759;
+        }
+
+        .btn:active {
+            opacity: 0.7;
+        }
+
+        .status-val {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .badge-ok {
+            color: #34c759;
+        }
+
+        .badge-warn {
+            color: #ff3b30;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>BỂ CÁ THÔNG MINH (4G)</h1>
+        <p>Chế độ hoạt động:</p>
+        <div id="modeDisplay" class="status-val">Đang tải...</div>
+        <button class="btn btn-blue" onclick="toggleMode()">Chuyển Auto / Manual</button>
+        <button class="btn btn-green" onclick="triggerFeed()"> Cho Cá Ăn Ngay</button>
+    </div>
+
+    <div class="card">
+        <h3>Thông Số Hiện Tại</h3>
+        <p>Ánh sáng (LDR A0): <span id="ldrVal" class="status-val">--</span></p>
+        <p>Mực nước: <span id="waterVal" class="status-val">--</span></p>
+    </div>
+
+    <script>
+        // THAY URL FIREBASE CỦA BẠN VÀO DÒNG NÀY (Giữ nguyên đuôi /beca.json)
+        const FIREBASE_URL = "https://be-ca-thong-minh-default-rtdb.asia-southeast1.firebasedatabase.app/beca.json";
+        let currentAutoMode = true;
+
+        async function updateUI() {
+            try {
+                const res = await fetch(FIREBASE_URL);
+                const data = await res.json();
+                if (data) {
+                    currentAutoMode = data.isAutoMode;
+                    document.getElementById('modeDisplay').innerText = data.isAutoMode ? "TỰ ĐỘNG (AUTO)" : "THỦ CÔNG (MANUAL)";
+                    document.getElementById('ldrVal').innerText = data.ldrValue !== undefined ? data.ldrValue : "--";
+                    document.getElementById('waterVal').innerHTML = data.waterStatus === 1 ? "<span class='badge-ok'>ĐỦ NƯỚC</span>" : "<span class='badge-warn'>CẠN NƯỚC!</span>";
+                }
+            } catch (err) {
+                console.error("Lỗi kết nối Firebase:", err);
+            }
+        }
+
+        async function toggleMode() {
+            await fetch(FIREBASE_URL, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isAutoMode: !currentAutoMode })
+            });
+            updateUI();
+        }
+
+        async function triggerFeed() {
+            await fetch(FIREBASE_URL, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedTrigger: true })
+            });
+            alert("Đã gửi lệnh cho cá ăn thành công!");
+        }
+
+        setInterval(updateUI, 1500);
+        updateUI();
+    </script>
+</body>
+
+</html>
