@@ -3,142 +3,6 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Bể Cá Thông Minh 4G</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f2f2f7;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-            color: #1c1c1e;
-        }
-
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-        }
-
-        h1 {
-            font-size: 24px;
-            color: #007aff;
-            margin-top: 0;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 16px 0;
-            margin: 10px 0;
-            border: none;
-            border-radius: 14px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            color: white;
-            transition: opacity 0.2s;
-        }
-
-        .btn-blue {
-            background: #007aff;
-        }
-
-        .btn-green {
-            background: #34c759;
-        }
-
-        .btn:active {
-            opacity: 0.7;
-        }
-
-        .status-val {
-            font-size: 28px;
-            font-weight: bold;
-            margin: 8px 0;
-        }
-
-        .badge-ok {
-            color: #34c759;
-        }
-
-        .badge-warn {
-            color: #ff3b30;
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="card">
-        <h1>BỂ CÁ THÔNG MINH (4G)</h1>
-        <p>Chế độ hoạt động:</p>
-        <div id="modeDisplay" class="status-val">Đang tải...</div>
-        <button class="btn btn-blue" onclick="toggleMode()">Chuyển Auto / Manual</button>
-        <button class="btn btn-green" onclick="triggerFeed()"> Cho Cá Ăn Ngay</button>
-    </div>
-
-    <div class="card">
-        <h3>Thông Số Hiện Tại</h3>
-        <p>Ánh sáng (LDR A0): <span id="ldrVal" class="status-val">--</span></p>
-        <p>Mực nước: <span id="waterVal" class="status-val">--</span></p>
-    </div>
-
-    <script>
-        // THAY URL FIREBASE CỦA BẠN VÀO DÒNG NÀY (Giữ nguyên đuôi /beca.json)
-        const FIREBASE_URL = "https://be-ca-b1bd9-default-rtdb.asia-southeast1.firebasedatabase.app/beca.json";
-        let currentAutoMode = true;
-
-        async function updateUI() {
-            try {
-                const res = await fetch(FIREBASE_URL);
-                const data = await res.json();
-                if (data) {
-                    currentAutoMode = data.isAutoMode;
-                    document.getElementById('modeDisplay').innerText = data.isAutoMode ? "TỰ ĐỘNG (AUTO)" : "THỦ CÔNG (MANUAL)";
-                    document.getElementById('ldrVal').innerText = data.ldrValue !== undefined ? data.ldrValue : "--";
-                    document.getElementById('waterVal').innerHTML = data.waterStatus === 1 ? "<span class='badge-ok'>ĐỦ NƯỚC</span>" : "<span class='badge-warn'>CẠN NƯỚC!</span>";
-                }
-            } catch (err) {
-                console.error("Lỗi kết nối Firebase:", err);
-            }
-        }
-
-        async function toggleMode() {
-            await fetch(FIREBASE_URL, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isAutoMode: !currentAutoMode })
-            });
-            updateUI();
-        }
-
-        async function triggerFeed() {
-            await fetch(FIREBASE_URL, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ feedTrigger: true })
-            });
-            alert("Đã gửi lệnh cho cá ăn thành công!");
-        }
-
-        setInterval(updateUI, 1500);
-        updateUI();
-    </script>
-</body>
-
-</html> -->
-
-
-
-
-<!DOCTYPE html>
-<html lang="vi">
-
-<head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0d1230">
     <title>Bể cá thông minh</title>
@@ -658,6 +522,575 @@
 
         $('feedBtn').onclick = async () => {
             if (autoMode) return;                      // chặn thêm ở phía mã
+            $('feedBtn').disabled = true;
+            try {
+                await patch({ feedTrigger: true });
+                toast('Đã gửi lệnh cho cá ăn');
+                feedLeft = FEED_COOLDOWN; syncControls();
+                const tick = setInterval(() => { feedLeft--; if (feedLeft <= 0) { feedLeft = 0; clearInterval(tick); } syncControls(); }, 1000);
+            } catch { toast('Gửi lệnh thất bại. Thử lại sau.'); syncControls(); }
+        };
+
+        function start() { stop(); refresh(); timer = setInterval(refresh, POLL_MS); }
+        function stop() { clearInterval(timer); }
+        document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+        window.addEventListener('online', refresh);
+        window.addEventListener('offline', () => setConn(false));
+        syncControls(); start();
+    </script>
+</body>
+
+</html> -->
+
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1230">
+    <title>Bể cá thông minh</title>
+    <style>
+        :root {
+            --bg: #f1f0fa;
+            --panel: #ffffff;
+            --ink: #1a1d3d;
+            --muted: #6a6d93;
+            --line: #e0def2;
+            --accent: #5b4bdb;
+            --accent-ink: #fff;
+            --coral: #ff6b57;
+            --ok: #12a37a;
+            --ok-bg: #dcf6ee;
+            --bad: #e0443a;
+            --bad-bg: #fde8e6;
+            --water-top: #7fb7ff;
+            --water-bot: #5b4bdb;
+            --glass: #cfd0ee;
+            --gold: #f5a623;
+            --gold-bg: #fff8e7;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0d1230;
+                --panel: #161c42;
+                --ink: #eceeff;
+                --muted: #9a9fd0;
+                --line: #272f66;
+                --accent: #8c7dff;
+                --accent-ink: #0d1230;
+                --coral: #ff7f6b;
+                --ok: #4fe0b0;
+                --ok-bg: #0f3b35;
+                --bad: #ff8178;
+                --bad-bg: #44201f;
+                --water-top: #4aa3ff;
+                --water-bot: #3a2fb0;
+                --glass: #3a4380;
+                --gold: #ffd166;
+                --gold-bg: #3d3215;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+            line-height: 1.45;
+            padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+        }
+
+        .app {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 820px) {
+            .app {
+                grid-template-columns: 340px 1fr;
+                align-items: start;
+            }
+
+            .top {
+                grid-column: 1 / -1;
+            }
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 2px;
+        }
+
+        .top h1 {
+            margin: 0;
+            font-size: clamp(22px, 4vw, 28px);
+        }
+
+        .conn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted);
+            background: var(--panel);
+            border-radius: 999px;
+            padding: 7px 14px;
+            border: 1px solid var(--line);
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+
+        .conn.on .dot {
+            background: var(--ok);
+        }
+
+        .conn.off .dot {
+            background: var(--bad);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 26px;
+            padding: 22px;
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 15px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .seg {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--bg);
+            border-radius: 16px;
+            padding: 5px;
+            gap: 5px;
+        }
+
+        .seg button {
+            border: 0;
+            border-radius: 12px;
+            padding: 14px 8px;
+            font: inherit;
+            font-weight: 700;
+            font-size: 16px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            transition: background .2s, color .2s;
+        }
+
+        .seg button[aria-pressed="true"] {
+            background: var(--accent);
+            color: var(--accent-ink);
+        }
+
+        .seg button:disabled {
+            cursor: wait;
+        }
+
+        .mode-desc {
+            margin: 12px 2px 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .feed {
+            width: 100%;
+            margin-top: 4px;
+            padding: 18px;
+            border: 0;
+            border-radius: 16px;
+            font: inherit;
+            font-weight: 800;
+            font-size: 18px;
+            background: var(--coral);
+            color: #fff;
+            cursor: pointer;
+            transition: transform .1s, opacity .2s;
+        }
+
+        .feed:active:not(:disabled) {
+            transform: scale(.98);
+        }
+
+        .feed:disabled {
+            background: var(--line);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .hint {
+            margin: 10px 2px 0;
+            font-size: 13px;
+            color: var(--muted);
+            min-height: 1.4em;
+        }
+
+        /* Tank */
+        .tank-wrap {
+            display: grid;
+            gap: 18px;
+        }
+
+        @media (min-width: 560px) {
+            .tank-wrap {
+                grid-template-columns: 1fr 1fr;
+                align-items: center;
+            }
+        }
+
+        .tank {
+            position: relative;
+            height: 220px;
+            border: 4px solid var(--glass);
+            border-top-width: 0;
+            border-radius: 0 0 28px 28px;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .water {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 0%;
+            transition: height .8s, opacity .4s;
+            background: linear-gradient(var(--water-top), var(--water-bot));
+        }
+
+        .water::before {
+            content: "";
+            position: absolute;
+            top: -8px;
+            left: 0;
+            right: 0;
+            height: 16px;
+            background: var(--water-top);
+            opacity: .6;
+            border-radius: 50%;
+        }
+
+        .tank.low .water {
+            background: linear-gradient(#b7bbd9, #8a8fb8);
+        }
+
+        .tank.na .water {
+            height: 0% !important;
+        }
+
+        .tank-label {
+            position: absolute;
+            inset: auto 0 14px;
+            text-align: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 20px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 16px;
+        }
+
+        .pill.ok {
+            background: var(--ok-bg);
+            color: var(--ok);
+        }
+
+        .pill.bad {
+            background: var(--bad-bg);
+            color: var(--bad);
+        }
+
+        .pill.gold {
+            background: var(--gold-bg);
+            color: var(--gold);
+        }
+
+        .pill.na {
+            background: var(--line);
+            color: var(--muted);
+        }
+
+        .alert {
+            display: none;
+            margin-top: 12px;
+            color: var(--bad);
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .big {
+            font-size: 38px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .foot {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: max(24px, env(safe-area-inset-bottom));
+            transform: translate(-50%, 20px);
+            background: var(--ink);
+            color: var(--bg);
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: .25s;
+            max-width: calc(100% - 32px);
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        button:focus-visible {
+            outline: 3px solid var(--coral);
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <header class="top">
+            <h1>Bể cá thông minh</h1>
+            <div class="conn" id="conn"><span class="dot"></span><span id="connText">Đang kết nối…</span></div>
+        </header>
+
+        <div class="stack">
+            <section class="panel">
+                <h2>Chế độ hoạt động</h2>
+                <div class="seg" role="group" aria-label="Chế độ hoạt động">
+                    <button id="btnAuto" aria-pressed="false" disabled>Tự động</button>
+                    <button id="btnManual" aria-pressed="false" disabled>Thủ công</button>
+                </div>
+                <p class="mode-desc" id="modeDesc">Đang tải trạng thái…</p>
+            </section>
+
+            <section class="panel">
+                <h2>Cho cá ăn</h2>
+                <button class="feed" id="feedBtn" disabled>Cho cá ăn ngay</button>
+                <p class="hint" id="feedHint"></p>
+            </section>
+        </div>
+
+        <div class="stack">
+            <section class="panel">
+                <h2>Mực nước</h2>
+                <div class="tank-wrap">
+                    <div class="tank na" id="tank">
+                        <div class="water" id="waterEl"></div>
+                        <div class="tank-label" id="tankLabel"></div>
+                    </div>
+                    <div>
+                        <span class="pill na" id="waterPill">Chưa có dữ liệu</span>
+                        <div class="alert" id="lowWater" role="alert">Mực nước thấp. Máy bơm tự động đang kích hoạt...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Ánh sáng & Đèn LED</h2>
+                <div class="big" id="lightText">--</div>
+                <div class="sub" id="lightSub">Trạng thái môi trường</div>
+                <div style="margin-top: 14px;">
+                    <span class="pill na" id="ledPill">Đèn LED: --</span>
+                </div>
+            </section>
+        </div>
+
+        <div class="foot" id="updated">Chưa cập nhật</div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+        const FIREBASE_URL = "https://be-ca-b1bd9-default-rtdb.asia-southeast1.firebasedatabase.app/beca.json";
+        const POLL_MS = 2000, FEED_COOLDOWN = 5;
+
+        const $ = id => document.getElementById(id);
+        let autoMode = true, busy = false, online = false, loaded = false, feedLeft = 0, timer = null;
+
+        function toast(m) {
+            const t = $('toast'); t.textContent = m; t.classList.add('show');
+            clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2600);
+        }
+
+        function syncControls() {
+            $('btnAuto').disabled = $('btnManual').disabled = !online || busy || !loaded;
+            $('btnAuto').setAttribute('aria-pressed', String(autoMode));
+            $('btnManual').setAttribute('aria-pressed', String(!autoMode));
+            $('modeDesc').textContent = autoMode
+                ? 'Bể tự chạy theo cảm biến. Không thể cho ăn bằng tay.'
+                : 'Bể chỉ làm theo lệnh bạn gửi từ đây.';
+            const canFeed = online && loaded && !autoMode && feedLeft === 0;
+            $('feedBtn').disabled = !canFeed;
+            if (feedLeft > 0) { $('feedBtn').textContent = 'Đã gửi lệnh'; $('feedHint').textContent = 'Có thể cho ăn lại sau ' + feedLeft + ' giây'; }
+            else {
+                $('feedBtn').textContent = 'Cho cá ăn ngay';
+                $('feedHint').textContent = !loaded ? '' : autoMode ? 'Chuyển sang Thủ công để cho cá ăn.' : !online ? 'Mất kết nối, chưa gửi được lệnh.' : '';
+            }
+        }
+
+        function setConn(ok) {
+            online = ok;
+            $('conn').className = 'conn ' + (ok ? 'on' : 'off');
+            $('connText').textContent = ok ? 'Đã kết nối' : 'Mất kết nối';
+            syncControls();
+        }
+
+        function render(d) {
+            if (!busy) autoMode = d.isAutoMode !== false;
+
+            // 1. Xử lý hiển thị Ánh sáng & Đèn LED (LDR Digital D6)
+            // Hỗ trợ cả biến `isDark` hoặc `ldrValue` cũ
+            const isDark = d.isDark !== undefined ? d.isDark : (d.ldrValue !== undefined ? (d.ldrValue < 300 || d.ldrValue === 1) : undefined);
+
+            if (isDark === undefined) {
+                $('lightText').textContent = '--';
+                $('lightSub').textContent = 'Chưa có dữ liệu cảm biến';
+                $('ledPill').className = 'pill na';
+                $('ledPill').textContent = 'Đèn LED: --';
+            } else if (isDark) {
+                $('lightText').textContent = 'MÔI TRƯỜNG TỐI';
+                $('lightSub').textContent = 'Thiếu ánh sáng tự nhiên';
+                $('ledPill').className = 'pill gold';
+                $('ledPill').textContent = 'Đèn LED: BẬT';
+            } else {
+                $('lightText').textContent = 'MÔI TRƯỜNG SÁNG';
+                $('lightSub').textContent = 'Đủ ánh sáng tự nhiên';
+                $('ledPill').className = 'pill na';
+                $('ledPill').textContent = 'Đèn LED: TẮT';
+            }
+
+            // 2. Xử lý hiển thị Mực nước % & Trạng thái Bơm
+            const tank = $('tank'), pill = $('waterPill'), waterEl = $('waterEl');
+            const waterLevel = d.waterLevel !== undefined ? Number(d.waterLevel) : (d.waterStatus === 1 ? 100 : (d.waterStatus === 0 ? 0 : undefined));
+            const isPumping = d.isPumping === true;
+
+            if (waterLevel === undefined || isNaN(waterLevel)) {
+                tank.className = 'tank na';
+                waterEl.style.height = '0%';
+                $('tankLabel').textContent = '';
+                pill.className = 'pill na';
+                pill.textContent = 'Chưa có dữ liệu';
+                $('lowWater').classList.remove('show');
+            } else {
+                tank.className = waterLevel < 20 ? 'tank low' : 'tank';
+                waterEl.style.height = waterLevel + '%';
+                $('tankLabel').textContent = waterLevel + '%';
+
+                if (isPumping) {
+                    pill.className = 'pill bad';
+                    pill.textContent = waterLevel + '% (Đang bơm...)';
+                    $('lowWater').textContent = 'Mực nước dưới 20%! Bơm tự động đang hoạt động.';
+                    $('lowWater').classList.add('show');
+                } else if (waterLevel < 20) {
+                    pill.className = 'pill bad';
+                    pill.textContent = waterLevel + '% (Cạn nước)';
+                    $('lowWater').textContent = 'Bể đang cạn nước (<20%). Hãy châm thêm nước.';
+                    $('lowWater').classList.add('show');
+                } else {
+                    pill.className = 'pill ok';
+                    pill.textContent = waterLevel + '% (Đủ nước)';
+                    $('lowWater').classList.remove('show');
+                }
+            }
+
+            $('updated').textContent = 'Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN');
+        }
+
+        async function refresh() {
+            try {
+                const r = await fetch(FIREBASE_URL, { cache: 'no-store' });
+                if (!r.ok) throw new Error(r.status);
+                const d = await r.json();
+                if (d) { loaded = true; render(d); }
+                setConn(true);
+            } catch (e) { console.error('Lỗi kết nối Firebase:', e); setConn(false); }
+        }
+
+        async function patch(body) {
+            const r = await fetch(FIREBASE_URL, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!r.ok) throw new Error(r.status);
+        }
+
+        async function setMode(next) {
+            if (next === autoMode || busy) return;
+            const prev = autoMode;
+            busy = true; autoMode = next; syncControls();
+            try { await patch({ isAutoMode: next }); toast('Đã chuyển sang chế độ ' + (next ? 'tự động' : 'thủ công')); }
+            catch { autoMode = prev; toast('Không đổi được chế độ. Kiểm tra mạng.'); }
+            busy = false; syncControls(); refresh();
+        }
+        $('btnAuto').onclick = () => setMode(true);
+        $('btnManual').onclick = () => setMode(false);
+
+        $('feedBtn').onclick = async () => {
+            if (autoMode) return;
             $('feedBtn').disabled = true;
             try {
                 await patch({ feedTrigger: true });
